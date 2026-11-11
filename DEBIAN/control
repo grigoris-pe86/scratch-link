@@ -1,0 +1,13 @@
+Package: scratch-link
+Version: 0.1-0.3.0b1-sch-scripts
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3, bluez, dbus, libnss3-tools, pipx
+Maintainer: Grigoris Markakis <grigoris.pe86@gmail.com>
+Homepage: https://github.com/grigoris-pe86/scratch-link
+Description: A script that downloads and installs version 0.3.0b1 of Scratch Link
+ Bleak (https://github.com/rril/scratch-link-bleak), an “unofficial, experimental
+ Scratch Link  BLE bridge for Linux using Bleak (BlueZ/D-Bus)”. Scratch Link helper
+ application for Bluetooth Low Energy (BLE) running as normal user.
+ Includes the /usr/bin/scratch-link management wrapper.

@@ -1,0 +1,76 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    --install)
+        /usr/bin/scratch-link-bleak --install
+        ;;
+    --certificate-status)
+        /usr/bin/scratch-link-bleak --certificate-status
+        ;;
+    --renew-certificate)
+        /usr/bin/scratch-link-bleak --renew-certificate
+        ;;
+    --install-service)
+        /usr/bin/scratch-link-bleak --install-service
+        ;;
+    --remove-service)
+        /usr/bin/scratch-link-bleak --remove-service
+        ;;
+    --setup)
+        /usr/bin/scratch-link-bleak --setup
+        ;;
+    --start-service)
+        systemctl --user start scratch-link-bleak
+        ;;
+    --stop-service)
+        systemctl --user stop scratch-link-bleak
+        ;;
+    --status)
+        # Check if the systemd user service is running
+        if systemctl --user is-active --quiet scratch-link-bleak 2>/dev/null; then
+            # The systemd service (scratch-link-bleak) is active:
+            echo "The systemd service (scratch-link-bleak) is active:"
+            systemctl --user status scratch-link-bleak
+        # If not running as a service, check if it runs in the background
+        elif pgrep -f "scratch-link-bleak" >/dev/null 2>&1; then
+            # scratch-link-bleak is running in the background:
+            echo "scratch-link-bleak is running in the background:"
+            pgrep -af "scratch-link-bleak"
+        else
+            # scratch-link-bleak is neither running as a systemd service nor in the background.
+            echo "scratch-link-bleak is neither running as a systemd service nor in the background."
+        fi
+        ;;
+    --start)
+        # Check if the process is running or if port 20110 is listened elsewhere
+        if ss -tln | grep -q ":20110\b"; then
+            # scratch-link-bleak is already running or port 20110 is in use.
+            echo "scratch-link-bleak is ALREADY running or port 20110 is in use." >&2
+            exit 1
+        else
+            /usr/bin/scratch-link-bleak &
+            # scratch-link-bleak started successfully.
+            echo "scratch-link-bleak started successfully."
+        fi
+        ;;
+    --stop)
+        # Check if the process is running before terminating it
+        if pgrep -f "scratch-link-bleak" >/dev/null 2>&1; then
+            # Terminate process scratch-link-bleak
+            pkill -f "/usr/bin/scratch-link-bleak" || true
+            # scratch-link-bleak has been terminated.
+            echo "scratch-link-bleak has been terminated."
+        else
+            # scratch-link-bleak is not running.
+            echo "scratch-link-bleak is NOT running."
+        fi
+        ;;
+    *)
+        # Usage instructions
+        echo "Usage: scratch-link {--install|--certificate-status|--renew-certificate|--install-service|--remove-service|--setup|--start-service|--stop-service|--status|--start|--stop}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

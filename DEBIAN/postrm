@@ -1,0 +1,70 @@
+#!/bin/sh
+set -e
+
+SERVICE="scratch-link-bleak.service"
+
+# Function to remove (disable, unmask, stop) the service for a specific user
+cleanup_user_service() {
+    USER_NAME="$1"
+    USER_ID="$2"
+
+    # If the user is logged in and running a systemd user session (DBUS session)
+    if [ -n "$USER_ID" ] && [ -d "/run/user/$USER_ID" ]; then
+        # Execute systemctl user commands for a specific user
+        sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/$USER_ID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus" systemctl --user stop "$SERVICE" >/dev/null 2>&1 || true
+        sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/$USER_ID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus" systemctl --user disable "$SERVICE" >/dev/null 2>&1 || true
+        sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/$USER_ID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus" systemctl --user unmask "$SERVICE" >/dev/null 2>&1 || true
+    fi
+}
+
+# Function to delete files for a specific user
+cleanup_user_files() {
+    USER_HOME="/home/$1"
+    rm -f "$USER_HOME/.config/systemd/user/scratch-link-bleak-cert-check.timer"
+    rm -f "$USER_HOME/.config/systemd/user/timers.target.wants/scratch-link-bleak-cert-check.timer"
+    rm -f "$USER_HOME/.config/systemd/user/scratch-link-bleak-cert-check.service"
+    rm -f "$USER_HOME/.config/systemd/user/scratch-link-bleak.service"
+    rm -f "$USER_HOME/.local/share/systemd/timers/stamp-scratch-link-bleak-cert-check.timer"
+    rm -rf "$USER_HOME/.local/share/scratch-link-bleak"
+
+    # Delete empty directoriries in ~/.config/systemd if exists
+    SYSTEMD_DIR="$USER_HOME/.config/systemd"; [ -d "$SYSTEMD_DIR" ] && find "$SYSTEMD_DIR" -type d -empty -delete || true
+
+}
+
+case "$1" in
+    purge)
+        echo "Cleaning up user files (TLS certificates, venv, etc) in /home..."
+        for user_dir in /home/*; do
+            username=$(basename "$user_dir")
+            if id "$username" >/dev/null 2>&1; then
+                user_id=$(id -u "$username")
+                cleanup_user_service "$username" "$user_id"
+                cleanup_user_files "$username"
+            fi
+        done
+
+        # Reload systemd user daemon if possible
+        systemctl --global daemon-reload >/dev/null 2>&1 || true
+
+        echo "Removing /opt/scratch-link-bleak installation..."
+        rm -rf /opt/scratch-link-bleak
+        rm -f /usr/bin/scratch-link-bleak
+    ;;
+
+    remove)
+        echo "Removing /opt/scratch-link-bleak installation..."
+        rm -rf /opt/scratch-link-bleak
+        rm -f /usr/bin/scratch-link-bleak
+    ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

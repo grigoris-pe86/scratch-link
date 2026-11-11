@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        echo "Installing scratch-link-bleak via pipx into /opt/scratch-link-bleak..."
+        PIPX_HOME=/opt/scratch-link-bleak PIPX_BIN_DIR=/usr/bin pipx install 'scratch-link-bleak==0.3.0b1' --force || true
+    ;;
+
+    *)
+    ;;
+esac
+
+exit 0
